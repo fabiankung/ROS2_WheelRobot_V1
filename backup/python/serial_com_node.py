@@ -43,14 +43,14 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
         self.create_timer(0.1,self.Timer_Callback)
         
         # Create a serial port handle. Settings:
-        # Baud rate = 19200
+        # Baud rate = 38400
         # Stop bit = 1
         # Parity = None
         # Byte length = 8 bits
         # Read timeout = 10 msec. External hardware usually responds
         # within 5 msec.
         # Write timeout = 20 msec.
-        self.sport = serial.Serial('/dev/ttyUSB0', 19200)
+        self.sport = serial.Serial('/dev/ttyUSB0', 38400)
         self.sport.timeout = 0.01 # Read timeout.
         self.sport.write_timeout = 0.02 # Write timeout.
         self.sport.reset_input_buffer() # Clear receive buffer first.
