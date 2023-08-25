@@ -27,12 +27,32 @@ private:
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);   // Initialize rclcpp object.
-    auto node = std::make_shared<RobotCoreNode>();      // Create a shared pointer to a node class. 
+    auto node = std::make_shared<RobotCoreNode>();      // 1. 'std' is a namespace in modern C++ that 
+                                                        // denotes standard library. Advisable to use this 
+                                                        // when invoking system variables, classes and 
+                                                        // functions to avoid conflict.
+                                                        // 2. Create a shared pointer to a node class. 
                                                         // Shared pointer is a newer feature of C++,
                                                         // easier for garbage collection when we
-                                                        // exit the application or go out of scope.
+                                                        // exit the application or go out of scope. 
+                                                        // Importantly several shared pointer objects may
+                                                        // own the same object.
+                                                        // 3. We do not need to manually perform the 
+                                                        // garbage collection like in tradisional 
+                                                        // pointer. 
+                                                        // 4. Shared pointer is similar to C# smart pointer.
+                                                        // 5. make_shared< > is a function in C++ to create
+                                                        // shared pointer. We can also use 'new' and 
+                                                        // 'shared_ptr< >' keywords but less efficient.
+                                                        //
                                                         // Note also the 'auto' keyword. This will
                                                         // automatically select the correct datatype.
+                                                        // 'auto' is a simple to declare a variable that
+                                                        // has a complicated type. This is a feature
+                                                        // in C++ 11 or newer. Something like python 
+                                                        // where we do not have to explicitly specify 
+                                                        // the datatype of a variable and leave it to 
+                                                        // the compiler.
     rclcpp::spin(node);     // Run node in the background, non-blocking.
     rclcpp::shutdown();     // If CTRL-C key is received, execute shutdown() method.
     return 0;
