@@ -53,7 +53,8 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
         # Read timeout = 10 msec. External hardware usually responds
         # within 5 msec.
         # Write timeout = 10 msec.
-        self.sport = serial.Serial('/dev/ttyUSB0', 38400)
+        #self.sport = serial.Serial('/dev/ttyUSB0', 38400) # USB-to-serial converter
+        self.sport = serial.Serial('/dev/ttyACM0', 38400) # Arduino Micro
         self.sport.timeout = 0.01 # Read timeout.
         self.sport.write_timeout = 0.01 # Write timeout.
         self.sport.reset_input_buffer() # Clear receive buffer first.
