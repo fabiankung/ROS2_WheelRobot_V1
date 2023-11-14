@@ -109,7 +109,7 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
 
                 if (sum == 0) or (sum == 256): # Make sure checksum is correct.
                     if ReadData[0] == 0x62:    # Compare with character 'b'.
-                        self.get_logger().info("Checksum check " + str(sum))  
+                        #self.get_logger().info("Checksum check " + str(sum))  
                         msg = RCStatus() # Note RCStatus is a function or method.
                         # Get distance.  Assemble the bytes into a 32-bits signed integer, something as shown
                         # below.
@@ -125,7 +125,7 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
                         msg.heading = int.from_bytes([ReadData[7], ReadData[8]], byteorder='big',signed=True)
                         self.get_logger().info("Heading " + str(msg.heading)) 
                         msg.hwstatus1 = ReadData[9]     # Get hardware status 1.
-                        self.publisher_.publish(msg)    # Publish message.
+                        #self.publisher_.publish(msg)    # Publish message.
                         
                                                             
 
