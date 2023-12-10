@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'hw_interface_py_pkg'
+package_name = 'teleop_py_pkg'
 
 setup(
     name=package_name,
@@ -14,13 +14,13 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='fkung',
-    maintainer_email='fkung@todo.todo',
+    maintainer_email='fabiankung@users.noreply.github.com',
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "serial_com = hw_interface_py_pkg.serial_com_node:main"
+            "teleop_key = teleop_py_pkg.teleop_key:main"
         ],
     },
 )

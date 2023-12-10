@@ -21,14 +21,14 @@ public:
         // std::placeholders::_1 after the 'this' keyword. 
         // If the callback function has 2 parameters, then we also need to add a 2nd placeholder
         // argument, i.e. std::placeholders::_2
-        timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(1000),
                                          std::bind(&RobotCoreNode::publishCommand, this));        
         // Create a publisher for topic 'tpc_RC_Command'.
         publisher_ = this->create_publisher<custom_robot_interface::msg::RCCommand>(
             "tpc_RC_Command",10);
 
         RCcommand = 1;
-        RCarg1 = 10;
+        RCarg1 = 0;
         RCarg2 = 0;
         RCarg3 = 0;
 
@@ -39,8 +39,8 @@ private:
     // Subscriber callback function for subscriber to RCStatus topic
     void callbackRC_Status(const custom_robot_interface::msg::RCStatus::SharedPtr msg)
     {
-        RCLCPP_INFO(this->get_logger(),"%d", msg->distance);
-        
+        RCLCPP_INFO(this->get_logger(),"Distance %d", msg->distance);
+        RCLCPP_INFO(this->get_logger(),"Heading %d", msg->heading);
     }
 
     // Publisher method for RCCommand
