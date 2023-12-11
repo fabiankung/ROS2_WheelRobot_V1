@@ -4,7 +4,7 @@ Description:    Code to scan for key press on keyboard or equivalent
                 input devices, decode the key command and publishes a 
                 valid command message.
 Author:         Fabian Kung
-Last modified:  9 Dec 2023
+Last modified:  11 Dec 2023
 '''
 
 import rclpy                # Library for ROS2 in python. Note that this
@@ -18,6 +18,16 @@ from custom_robot_interface.msg import RCCommand
 import tty, termios
 import sys, select
 
+UserMessage = '''
+Press the following keys to move the robot: 
+f = forward 
+t = backward 
+r = turn right 
+l = turn left
+c = to stop the process
+Any other key = stop
+''' 
+
 class TeleopKeyNode(Node):  # Create a class, inherited from the Node class.
     def __init__(self):     # Constructor.
         super().__init__("teleop_key_node") # Create a node, initialize node name. 
@@ -27,6 +37,7 @@ class TeleopKeyNode(Node):  # Create a class, inherited from the Node class.
                             # sibling class.
         #self.counter = 0    
         self.get_logger().info("Teleop_key node starting up...")
+        self.get_logger().info(UserMessage)
         
         # Create a publisher using the interface RCCommand,
         # with topic "tpc_RC_Status", and queue size of 10.
@@ -53,16 +64,13 @@ class TeleopKeyNode(Node):  # Create a class, inherited from the Node class.
         # Only for Linux and MacOS. For Windows need to use other low-level
         # system calls. See the original code to include support for Windows.
         tty.setraw(sys.stdin.fileno()) # Change the mode of terminal.
-        rlist, _, _ = select.select([sys.stdin], [], [], 0.1)   # Access select() and poll() 
-                                                                # functions in the OS system 
-                                                                # calls.
-        if rlist:
-            self.key = sys.stdin.read(1)
+        rlist, _, _ = select.select([sys.stdin], [], [], 0.1)   # Access select() and poll()                                                                 
+        if rlist:                                               # functions in the OS system 
+            self.key = sys.stdin.read(1)                        # calls.
         else:
             self.key = ' '
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings) # Set attribute of file 
                                                                 # descriptor sys.stdin
-
         # Decode the key.
         if self.key == 'c':
             #rclpy.shutdown() # Tested this will not work!
@@ -112,9 +120,6 @@ class TeleopKeyNode(Node):  # Create a class, inherited from the Node class.
             msg.arg4 = arg4
             msg.checksum = sum & 0xFF       # Mask out all bits except the lower 8 bits.
             self.publisher_.publish(msg)    # Publish message.
-
-    
-
 
 def main(args=None):
     rclpy.init(args=args)   # Initialize ROS communication library.
