@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'hw_interface_py_pkg'
+package_name = 'hw_int_nav2_py_pkg'
 
 setup(
     name=package_name,
@@ -15,12 +15,14 @@ setup(
     zip_safe=True,
     maintainer='fkung',
     maintainer_email='fkung@todo.todo',
-    description='TODO: Package description',
+    description='Manages serial communication with external hardware or robot controller',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "serial_com = hw_interface_py_pkg.serial_com_node:main"
+            "serial_com = hw_int_nav2_py_pkg.serial_com_node:main",
+            "rcstate_pub = hw_int_nav2_py_pkg.rcstate_pub_node:main",
+            "teleop_key = hw_int_nav2_py_pkg.teleop_key:main"
         ],
     },
 )

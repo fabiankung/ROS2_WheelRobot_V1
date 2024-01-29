@@ -3,7 +3,7 @@
 Description:    Code to handle outgoing and incoming data packets from
                 serial port.
 Author:         Fabian Kung
-Last modified:  26 Oct 2023
+Last modified:  13 Jan 2024
 '''
 
 import rclpy                # Library for ROS2 in python. Note that this
@@ -13,15 +13,17 @@ import rclpy                # Library for ROS2 in python. Note that this
                             # up the library.
 from rclpy.node import Node
 #from example_interfaces.msg import String # Import String datatype for messaging.
-from custom_robot_interface.msg import RCStatus
-from custom_robot_interface.msg import RCCommand
+from wheelrobot_interface.msg import RCStateRaw
+from wheelrobot_interface.msg import RCCommand
 
 import serial
 
+_LENGTH_OF_PACKET = 22
 
 class SerialComNode(Node):  # Create a class, inherited from the Node class.
 
     ReadData = []           # Class level variable, captured data from serial port.
+    CurrentTimestamp = 0    # Initialize current time stamp.
 
     def __init__(self):     # Constructor.
         super().__init__("serial_com_node") # Create a node, initialize node name. 
@@ -32,14 +34,14 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
         #self.counter = 0    
         self.get_logger().info("Serial COM node starting up...")
         
-        # Create a publisher using the interface RCStatus,
-        # with topic "tpc_RC_Status", and queue size of 10.
-        self.publisher_ = self.create_publisher(RCStatus, "tpc_RC_Status", 10)
+        # Create a publisher using the interface RCStateRaw,
+        # with topic name "t_rc_status", and queue size of 8.
+        self.publisher_ = self.create_publisher(RCStateRaw, "t_rc_status", 8)
 
-        # Create a subscriber using the interface RCCommand, with topic "tpc_RC_Command"
-        # and queue size of 10.                    
+        # Create a subscriber using the interface RCCommand, with topic name 
+        # "t_rc_command" and queue size of 8.                    
         self.subscriber_ = self.create_subscription(RCCommand, 
-                                                    "tpc_RC_Command",self.Subscriber_Callback,10)
+                                                    "t_rc_command",self.Subscriber_Callback,8)
 
         # Variables for Robot Controller (RC) serial interface.
         #self.RC_TX_Busy = False         # TX busy flag. Set to 'true' to
@@ -74,28 +76,37 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
        with format like this:
        Byte  Content
        0     'b'
-       1      Distance.3 - MSB, or bit 31-24 of 32 bits signed integer representing average 
-                           distance travelled in encorder ticks.
-       2      Distance.2 - bits 23-16
-       3      Distance.1 - bits 15-8
-       4      Distance.0 - bits 7-0
-       5      Velocity.1 - MSB, or bits 15-8 of 16 bits signed integer representing average 
-                           velocity in revolution/sec.
-       6      Velocity.0 - bits 7-0
-       7      Heading.1 -  MSB, or bits 15-8 of 16 bits signed integer representing heading
-                           or direction of the robotic platform.
-       8      Heading.0 -  bits 7-0 
-       9      Hardware status flags - Reserved
-       10     Checksum byte, using sum complement method.
+       1      Timestamp.3 - MSB, bits 31-24.
+       2      Timestamp.2 - Bits 23-16. 
+       3      Timestamp.1 - Bits 15-8.
+       4      Timestamp.0 - Bits 7-0.
+       5      Rotater.3 - MSB, or bits 31-24. 
+       6      Rotater.2 - Bits 23-16.
+       7      Rotater.1 - Bits 15-8.
+       8      Rotater.0 - Bits 7-0.
+       9      Rotatel.3 - MSB, or bits 31-24. 
+       10     Rotatel.2 - Bits 23-16.
+       11     Rotatel.1 - Bits 15-8.
+       12     Rotatel.0 - Bits 7-0.
+       13     Hardware status flags - Reserved
+       14     Hardware status flags - Reserved      
+       15     Sensor1.1 -  bits 15-8 (MSB)
+       16     Sensor1.0 -  bits 7-0 (LSB)
+       17     Sensor2.1 -  bits 15-8 (MSB)
+       18     Sensor2.0 -  bits 7-0
+       19     Sensor3.1 -  bits 15-8
+       20     Sensor3.0 -  bits 7-0
+       21     Checksum byte, using sum complement method.
 
     2. Acknowledgement from RC when receiving a command packet from ROS2. This is just 1 byte,
-       either ACK or NAK.
+       either ACK or NAK. (Not implementing for now)
     """
     def Timer_Callback(self):   
         if self.sport.is_open == True:
             bytetoread = self.sport.in_waiting
-            if bytetoread > 10:  # At least 11 bytes
-                ReadData = self.sport.read(bytetoread)
+            if bytetoread > (_LENGTH_OF_PACKET-1):  # At least 22 bytes
+                #self.get_logger().info("Byte to read " + str(bytetoread))
+                ReadData = self.sport.read(bytetoread)               
                 self.sport.reset_input_buffer()
                 #self.get_logger().info(str(ReadData))  # Echo receive data to terminal.
                     
@@ -106,27 +117,36 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
                 for data in ReadData:
                     sum = sum + data
                 sum = sum & 0x00FF      # Mask out all bits except lower byte.
+                #self.get_logger().info("Check sum " + str(sum))
 
-                if (sum == 0) or (sum == 256): # Make sure checksum is correct.
+                if sum == 0: # Make sure checksum is correct.
                     if ReadData[0] == 0x62:    # Compare with character 'b'.
                         #self.get_logger().info("Checksum check " + str(sum))  
-                        msg = RCStatus() # Note RCStatus is a function or method.
+                        msg = RCStateRaw() # Note RCStateRaw is a function or method.
                         # Get distance.  Assemble the bytes into a 32-bits signed integer, something as shown
                         # below.
                         # tempdata = (ReadData[1]<<24) + (ReadData[2]<<16) + (ReadData[3]<<8) + ReadData[4]
                         # Here it is big endian, the most significant byte (MSB) is assumed to be send first.
-                        msg.distance = int.from_bytes([ReadData[1], ReadData[2], ReadData[3], ReadData[4]], byteorder='big',signed=True)
-                        self.get_logger().info("Distance " + str(msg.distance))  
-                        # Get velocity. Convert the bytes into 16-bits integer.
-                        velocity_offset = int.from_bytes([ReadData[5], ReadData[6]], byteorder='big',signed=True)
-                        msg.velocity = velocity_offset - 1024
-                        self.get_logger().info("Velocity " + str(msg.velocity))  
-                        # Get heading. Convert the bytes into 16-bits integer.
-                        msg.heading = int.from_bytes([ReadData[7], ReadData[8]], byteorder='big',signed=True)
-                        self.get_logger().info("Heading " + str(msg.heading)) 
-                        msg.hwstatus1 = ReadData[9]     # Get hardware status 1.
-                        #self.publisher_.publish(msg)    # Publish message.
-                        
+                        # Get time stamp for packet.
+                        msg.timestamp = int.from_bytes([ReadData[1], ReadData[2], ReadData[3], ReadData[4]], byteorder='big', signed=False)
+                        #self.get_logger().info("Time stamp " + str(msg.timestamp)) 
+                        # Get right wheel rotation. Convert the big endidan bytes into 32-bits signed integer. 
+                        # Note that there is an offset which we must subtract off.
+                        msg.rotater = int.from_bytes([ReadData[5], ReadData[6], ReadData[7], ReadData[8]],byteorder='big',signed=True)
+                        #self.get_logger().info("Right rotation " + str(msg.rotater)) 
+                        # Get left wheel rotation. Convert the big endidan bytes into 32-bits signed integer. 
+                        # Note that there is an offset which we must subtract off.
+                        msg.rotatel = int.from_bytes([ReadData[9], ReadData[10], ReadData[11], ReadData[12]], byteorder='big',signed=True)  
+                        #self.get_logger().info("Left rotation " + str(msg.rotatel))                      
+                        # Get range sensor output.
+                        msg.sen_ranger = int.from_bytes([ReadData[15], ReadData[16]], byteorder='big',signed=False)
+                        msg.sen_rangel = int.from_bytes([ReadData[17], ReadData[18]], byteorder='big',signed=False)
+                        msg.sen_rangef = int.from_bytes([ReadData[19], ReadData[20]], byteorder='big',signed=False)
+                        msg.hwstatus1 = ReadData[13]    # Get hardware status 1.
+                        if msg.timestamp >= self.CurrentTimestamp:  # Make sure time increase! Else discard
+                                                                    # the data packet as it could indicate 
+                                                                    # unreliable data.
+                            self.publisher_.publish(msg)    # Publish message.
                                                             
 
     def __del__(self):      # Destructor.
@@ -136,16 +156,21 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
     def Subscriber_Callback(self, msg):
         # Check checksum value. The sum of all bytes in the 
         # message should adds up to 0 or 256 (lower 8-bits are zero)
+        
         command = msg.command
         arg1 = msg.arg1
         arg2 = msg.arg2
         arg3 = msg.arg3
+        arg4 = msg.arg4
         checksum = msg.checksum
-        sum = command + arg1 + arg2 + arg3 + checksum   # Make sure checksum is correct.
+        sum = command + arg1 + arg2 + arg3 + arg4 + checksum   # Make sure checksum is correct.
+        
         #self.get_logger().info(str(sum))
-        if (sum == 0) or (sum == 256): # Make sure checksum is correct.
-            if self.sport.is_open == True: # Make sure serial port is opened.
-                self.sport.write(bytes([command, arg1, arg2, arg2, checksum]))    
+        sum = sum & 0xFF                    # Mask out all bits except lower 8 bits.
+        self.get_logger().info("Command received, sum= " + str(sum) )           
+        if (sum == 0):                      # Make sure checksum is correct.
+            if self.sport.is_open == True:  # Make sure serial port is opened.
+                self.sport.write(bytes([command, arg1, arg2, arg3, arg4, checksum]))    
             
 
 def main(args=None):
