@@ -46,6 +46,24 @@
         <origin xyz="0 0 0.0645" rpy="0 0 0"/>
     </joint>    
      
+   <!-- Top_body -->
+    <link name="top_link">
+        <visual>
+            <geometry>
+                <box size="0.132 0.160 0.028" />
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <material name="blue" />
+        </visual>
+    </link>  
+    
+    <!-- The z offset is 0.5*(base_link.height + top_link.height)-->
+    <joint name="base_top_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="top_link"/>
+        <origin xyz="0 0 0.0565" rpy="0 0 0"/>
+    </joint>          
+     
     <!-- Wheels (2 differential wheels) -->
     <link name="left_wheel">
         <visual>
@@ -96,8 +114,25 @@
         <origin xyz="0.0525 0 -0.0540" rpy="0 0 0"/>
     </joint>  
              
+    <!-- Various sensors link -->
+    <!-- Lidar sensor (required for Nav2) -->
+    <link name="base_scan_link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.017" length="0.012"/>
+            </geometry>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <material name="yellow" />
+        </visual>
+    </link>    
+    
+    <joint name="base_scan_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="base_scan_link"/>
+        <origin xyz="0.0 0.0 0.1095" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>    
+    
     <!-- Range sensors link -->
-    <!-- Required for Nav2 and Rviz2 -->
     <link name="right_rsen_link">
         <visual>
             <geometry>
