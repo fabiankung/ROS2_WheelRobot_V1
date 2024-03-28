@@ -176,7 +176,7 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
             
 
 def main(args=None):
-    rclpy.init(args=args)   # Initialize ROS communication library.
+    rclpy.init(args=args)   # Initialize ROS2 communication library.
     node = SerialComNode()  # Instantiate class.
     rclpy.spin(node)        # Block the current node so that other process can run.
     rclpy.shutdown()        # Shutdown.

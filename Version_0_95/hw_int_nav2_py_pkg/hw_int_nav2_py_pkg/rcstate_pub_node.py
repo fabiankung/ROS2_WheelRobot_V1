@@ -3,7 +3,7 @@
 Description:    Code to convert the raw robot controller raw state parameters
                 into Navigation2 required messages, and publish these.
 Author:         Fabian Kung
-Last modified:  13 March 2024
+Last modified:  18 March 2024
 '''
 
 import rclpy                # Library for ROS2 in python. Note that this
@@ -21,7 +21,11 @@ from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 from math import cos, sin
 
+#import robot_physical_params as robot
+
 # Declare constants of wheel robot platform
+#_RC_OS_TICK_SECONDS = robot._RC_OS_TICK_SECONDS
+#_NO_TICK_ROTATION = robot._NO_TICK_ROTATION
 _RC_OS_TICK_SECONDS = 0.0001667
 _NO_TICK_ROTATION = 450.0
 _RAD_PER_TICK = 6.2832/_NO_TICK_ROTATION # 2*pi/(num_tick_rotation)
@@ -36,8 +40,8 @@ class RCStatePubNode(Node):  # Create a class, inherited from the Node class.
     odom_msg = Odometry()   # Object for storing odometry information (from wheel encoders).
     tfodombase = TransformStamped() # Object for storing transform (tf) data, odom-->base_footprint mapping.
 
-    dw = 0.156              # Wheel pitch, meter, this needs to tally with URDF file.
-    rw = 0.042              # Wheel radius, meter, this needs to tally with URDF file.
+    dw = robot._WHEEL_PITCH     # Wheel pitch, meter, this needs to tally with URDF file.
+    rw = robot._WHEEL_RADIUS    # Wheel radius, meter, this needs to tally with URDF file.
     rw_dw = rw/dw
     rw_2 = rw/2.0
 
@@ -169,13 +173,17 @@ class RCStatePubNode(Node):  # Create a class, inherited from the Node class.
         v = (self.rw_2)*(wr + wl)           # 
         w = (self.rw_dw)*(wr - wl)
     
-        # Updating the estimated pose of the robot using finite difference, based on the 
-        # kinematic formulation by S. Thrun et-al, "Probabilistic robotics", 2005, MIT Press.
+        # Updating the estimated pose of the robot using finite difference, based on the kinematic 
+        # formulation, equation (5.9) by S. Thrun et-al, "Probabilistic robotics", 2005, MIT Press.
+        # Here I made a small modification, that when the ratio w*deltat is very small, a straight
+        # line approximation is used.
         dtheta = w * dt
         theta_new = self.theta + dtheta
 
-        if (dtheta < 0.01):             # Use straight line approximation when angular velocity
-                                        # is too small.
+        if (dtheta < 0.01):             # Use straight line approximation when change in angle
+                                        # is too small. This limit we can adjust, suggest to be
+                                        # between 0.001 to 0.01 radian, based on accuracy of our
+                                        # encoders or sensors.
             Vdt = v*dt
             dx = Vdt*cos(self.theta)
             dy = Vdt*sin(self.theta)        
@@ -258,7 +266,7 @@ class RCStatePubNode(Node):  # Create a class, inherited from the Node class.
 
 
 def main(args=None):
-    rclpy.init(args=args)   # Initialize ROS communication library.
+    rclpy.init(args=args)   # Initialize ROS2 communication library.
     node = RCStatePubNode()  # Instantiate class.
     rclpy.spin(node)        # Block the current node so that other process can run.
     rclpy.shutdown()        # Shutdown.

@@ -105,21 +105,7 @@ class TeleopKeyNode(Node):  # Create a class, inherited from the Node class.
                 arg1 = 48       # ASCII value for character '0'
                 arg2 = 48       # ASCII value for character '0'
                 arg3 = 49       # ASCII value for character '1'
-                arg4 = 48       # ASCII value for character '0'
-            elif self.key == 'e': # Experimental mode
-                command = 116   # ASCII value for character 't'
-                arg1 = 0        # 
-                arg2 = 0        # 
-                arg3 = 0        # 
-                arg4 = 250      #       
-            elif self.key == 'w': # Experimental mode, continuous turn
-                command = 116   # ASCII value for character 't'
-                #arg1 = 0xFF    # -25 in 2's complement
-                #arg2 = 0xE7    # 
-                arg1 = 0
-                arg2 = 0
-                arg3 = 0xFF     # -250 in 2's complement
-                arg4 = 0x06     #                                                             
+                arg4 = 48       # ASCII value for character '0'                             
             else:               # Stop command
                 command = 88    # ASCII value for character 'X'
                 arg1 = 48       # ASCII value for character '0'
@@ -138,7 +124,7 @@ class TeleopKeyNode(Node):  # Create a class, inherited from the Node class.
             self.publisher_.publish(msg)    # Publish message.
 
 def main(args=None):
-    rclpy.init(args=args)   # Initialize ROS communication library.
+    rclpy.init(args=args)   # Initialize ROS2 communication library.
     node = TeleopKeyNode()  # Instantiate class.
     rclpy.spin(node)        # Block the current node so that other process can run.
     rclpy.shutdown()        # Shutdown.
