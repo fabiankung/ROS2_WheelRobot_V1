@@ -1,6 +1,6 @@
 # Launch file for wheel robot with nav2 support
 # Include calling the Lidar launch file.
-# Last modified: 21 March 2024
+# Last modified: 10 March 2024
 # Author:        Fabian Kung
 
 import os
@@ -28,24 +28,25 @@ def generate_launch_description():
         default=os.path.join(get_package_share_directory('ldlidar'), 'launch')
     )
 
-    print('serial com')
+    print('serial_com_node')
     serial_com_node = launch_ros.actions.Node(
         package="hw_int_nav2_py_pkg",
         executable="serial_com"
     )
-
-    print('hw state')
+ 
+    print('rcstate_pub_node')
     rcstate_pub_node = launch_ros.actions.Node(
         package="hw_int_nav2_py_pkg",
         executable="rcstate_pub"
     )
 
-    print('cmd_vel_RC_command')
+    print('cmd_vel_RC_command_node')
     cmd_vel_RC_command_node = launch_ros.actions.Node(
         package="hw_int_nav2_py_pkg",
         executable="cmd_vel_RC_command"
     )
 
+    print('ROS2 robot_state_publisher')
     robot_state_publisher_node = launch_ros.actions.Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -60,6 +61,16 @@ def generate_launch_description():
         arguments=['-d', LaunchConfiguration('rvizconfig')]
     )
 
+    print('v4l2 camera support node')
+    v4l2_node = launch_ros.actions.Node(
+        package="v4l2_camera",
+        executable="v4l2_camera_node",
+        parameters=[
+            {'image_size': [320,240]},
+            {'camara_frame_id': 'camera_link_optical'}
+        ]
+    )
+
     return launch.LaunchDescription([
         launch.actions.DeclareLaunchArgument(name='gui', default_value='True',
                                             description='Flag to enable joint_state_publisher_gui'),
@@ -72,7 +83,9 @@ def generate_launch_description():
         cmd_vel_RC_command_node,
         robot_state_publisher_node,
         #rviz_node,
+        v4l2_node,
 
+        # --- Python launch files from other packages ---
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([lidar_pkg_dir, LIDAR_LAUNCH_FILE])
         )
