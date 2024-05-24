@@ -3,7 +3,7 @@
 Description:    Code to handle outgoing and incoming data packets from
                 serial port.
 Author:         Fabian Kung
-Last modified:  13 March 2024
+Last modified:  24 May 2024
 '''
 
 import rclpy                # Library for ROS2 in python. Note that this
@@ -50,10 +50,10 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
         #self.TXCount = 0                # TX count.
 
         # Create a timer
-        # Timer period = 50 msec. This is sufficient for RC reporting rate of 3-6 Hz.
-	# For higher update rate, we should use smaller duration. Experiment shows 
-	# that 20 msec can support up to 20 Hz RC reporting rate.
-        self.create_timer(0.01,self.Timer_Callback)
+        # Timer period = 50 msec. This is good for RC reporting rate up to 6 Hz.
+        # For higher reporting rate, need to reduce the timer callback duration.
+        # For instance, for 10Hz, a duration of 20 msec is needed.
+        self.create_timer(0.02,self.Timer_Callback)
         
         # Create a serial port handle. Settings:
         # Baud rate = 38400 (for Arduino)
@@ -78,26 +78,26 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
        with format like this:
        Byte  Content
        0     'b'
-       1      Timestamp.3 - MSB, bits 31-24.
-       2      Timestamp.2 - Bits 23-16. 
-       3      Timestamp.1 - Bits 15-8.
-       4      Timestamp.0 - Bits 7-0.
-       5      Rotater.3 - MSB, or bits 31-24. 
-       6      Rotater.2 - Bits 23-16.
-       7      Rotater.1 - Bits 15-8.
-       8      Rotater.0 - Bits 7-0.
-       9      Rotatel.3 - MSB, or bits 31-24. 
-       10     Rotatel.2 - Bits 23-16.
-       11     Rotatel.1 - Bits 15-8.
-       12     Rotatel.0 - Bits 7-0.
+       1      Timestamp.0 - Bits 7-0.
+       2      Timestamp.1 - Bits 15-8.
+       3      Timestamp.2 - Bits 23-16.
+       4      Timestamp.3 - MSB, bits 31-24.
+       5      Rotater.0 - Bits 7-0. 
+       6      Rotater.1 - Bits 15-8.
+       7      Rotater.2 - Bits 23-16.
+       8      Rotater.3 - MSB, bits 31-24.
+       9      Rotatel.0 - Bits 7-0.
+       10     Rotatel.1 - Bits 15-8.
+       11     Rotatel.2 - Bits 23-16.
+       12     Rotatel.3 - MSB, bits 31-24.
        13     Hardware status flags - Reserved
        14     Hardware status flags - Reserved      
-       15     Sensor1.1 -  bits 15-8 (MSB)
-       16     Sensor1.0 -  bits 7-0 (LSB)
-       17     Sensor2.1 -  bits 15-8 (MSB)
-       18     Sensor2.0 -  bits 7-0
-       19     Sensor3.1 -  bits 15-8
-       20     Sensor3.0 -  bits 7-0
+       15     Sensor1.0 -  bits 7-0 (LSB)
+       16     Sensor1.1 -  bits 15-8 (MSB)
+       17     Sensor2.0 -  bits 7-0 (LSB)
+       18     Sensor2.1 -  bits 15-8 (MSB)
+       19     Sensor3.0 -  bits 7-0 (LSB)
+       20     Sensor3.1 -  bits 15-8 (MSB)
        21     Checksum byte, using sum complement method.
 
     2. Acknowledgement from RC when receiving a command packet from ROS2. This is just 1 byte,
@@ -130,20 +130,20 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
                         # tempdata = (ReadData[1]<<24) + (ReadData[2]<<16) + (ReadData[3]<<8) + ReadData[4]
                         # Here it is big endian, the most significant byte (MSB) is assumed to be send first.
                         # Get time stamp for packet.
-                        msg.timestamp = int.from_bytes([ReadData[1], ReadData[2], ReadData[3], ReadData[4]], byteorder='big', signed=False)
+                        msg.timestamp = int.from_bytes([ReadData[1], ReadData[2], ReadData[3], ReadData[4]], byteorder='little', signed=False)
                         #self.get_logger().info("Time stamp " + str(msg.timestamp)) 
-                        # Get right wheel rotation. Convert the big endidan bytes into 32-bits signed integer. 
+                        # Get right wheel rotation. Convert the little endidan bytes into 32-bits signed integer. 
                         # Note that there is an offset which we must subtract off.
-                        msg.rotater = int.from_bytes([ReadData[5], ReadData[6], ReadData[7], ReadData[8]],byteorder='big',signed=True)
+                        msg.rotater = int.from_bytes([ReadData[5], ReadData[6], ReadData[7], ReadData[8]],byteorder='little',signed=True)
                         #self.get_logger().info("Right rotation " + str(msg.rotater)) 
-                        # Get left wheel rotation. Convert the big endidan bytes into 32-bits signed integer. 
+                        # Get left wheel rotation. Convert the little endidan bytes into 32-bits signed integer. 
                         # Note that there is an offset which we must subtract off.
-                        msg.rotatel = int.from_bytes([ReadData[9], ReadData[10], ReadData[11], ReadData[12]], byteorder='big',signed=True)  
+                        msg.rotatel = int.from_bytes([ReadData[9], ReadData[10], ReadData[11], ReadData[12]], byteorder='little',signed=True)  
                         #self.get_logger().info("Left rotation " + str(msg.rotatel))                      
                         # Get range sensor output.
-                        msg.sen_ranger = int.from_bytes([ReadData[15], ReadData[16]], byteorder='big',signed=False)
-                        msg.sen_rangel = int.from_bytes([ReadData[17], ReadData[18]], byteorder='big',signed=False)
-                        msg.sen_rangef = int.from_bytes([ReadData[19], ReadData[20]], byteorder='big',signed=False)
+                        msg.sen_ranger = int.from_bytes([ReadData[15], ReadData[16]], byteorder='little',signed=False)
+                        msg.sen_rangel = int.from_bytes([ReadData[17], ReadData[18]], byteorder='little',signed=False)
+                        msg.sen_rangef = int.from_bytes([ReadData[19], ReadData[20]], byteorder='little',signed=False)
                         msg.hwstatus1 = ReadData[13]    # Get hardware status 1.
                         if msg.timestamp >= self.CurrentTimestamp:  # Make sure time increase! Else discard
                                                                     # the data packet as it could indicate 
@@ -169,14 +169,14 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
         
         #self.get_logger().info(str(sum))
         sum = sum & 0xFF                    # Mask out all bits except lower 8 bits.
-        #self.get_logger().info("Command received, sum= " + str(sum) )           
+        self.get_logger().info("Command received, sum= " + str(sum) )           
         if (sum == 0):                      # Make sure checksum is correct.
             if self.sport.is_open == True:  # Make sure serial port is opened.
                 self.sport.write(bytes([command, arg1, arg2, arg3, arg4, checksum]))    
             
 
 def main(args=None):
-    rclpy.init(args=args)   # Initialize ROS communication library.
+    rclpy.init(args=args)   # Initialize ROS2 communication library.
     node = SerialComNode()  # Instantiate class.
     rclpy.spin(node)        # Block the current node so that other process can run.
     rclpy.shutdown()        # Shutdown.
