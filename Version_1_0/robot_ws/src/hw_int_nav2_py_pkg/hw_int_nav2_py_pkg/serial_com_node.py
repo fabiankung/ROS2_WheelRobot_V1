@@ -3,7 +3,7 @@
 Description:    Code to handle outgoing and incoming data packets from
                 serial port.
 Author:         Fabian Kung
-Last modified:  24 May 2024
+Last modified:  21 July 2024
 '''
 
 import rclpy                # Library for ROS2 in python. Note that this
@@ -18,7 +18,7 @@ from wheelrobot_interface.msg import RCCommand
 
 import serial
 
-_LENGTH_OF_PACKET = 22
+_LENGTH_OF_RX_PACKET = 22
 
 class SerialComNode(Node):  # Create a class, inherited from the Node class.
 
@@ -106,7 +106,7 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
     def Timer_Callback(self):   
         if self.sport.is_open == True:
             bytetoread = self.sport.in_waiting
-            if bytetoread > (_LENGTH_OF_PACKET-1):  # At least 22 bytes
+            if bytetoread > (_LENGTH_OF_RX_PACKET-1):  # At least 22 bytes
                 #self.get_logger().info("Byte to read " + str(bytetoread))
                 ReadData = self.sport.read(bytetoread)               
                 self.sport.reset_input_buffer()
@@ -167,13 +167,15 @@ class SerialComNode(Node):  # Create a class, inherited from the Node class.
         checksum = msg.checksum
         sum = command + arg1 + arg2 + arg3 + arg4 + checksum   # Make sure checksum is correct.
         
+        try:
         #self.get_logger().info(str(sum))
-        sum = sum & 0xFF                    # Mask out all bits except lower 8 bits.
-        self.get_logger().info("Command received, sum= " + str(sum) )           
-        if (sum == 0):                      # Make sure checksum is correct.
-            if self.sport.is_open == True:  # Make sure serial port is opened.
-                self.sport.write(bytes([command, arg1, arg2, arg3, arg4, checksum]))    
-            
+            sum = sum & 0xFF                    # Mask out all bits except lower 8 bits.
+            self.get_logger().info("Command received, sum= " + str(sum) )           
+            if (sum == 0):                      # Make sure checksum is correct.
+                if self.sport.is_open == True:  # Make sure serial port is opened.
+                    self.sport.write(bytes([command, arg1, arg2, arg3, arg4, checksum]))    
+        except:
+            self.get_logger().info("Error with transmitting to COM port")
 
 def main(args=None):
     rclpy.init(args=args)   # Initialize ROS2 communication library.
